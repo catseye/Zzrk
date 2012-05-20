@@ -1,0 +1,469 @@
+!! zzrk.zz - a simple text adventure written in "100% pure Zz"
+!! Initial skeleton, Nov 21 2003 Chris Pressey
+!! Minimally fleshed-out (50 pt) version, May 6 2007 Chris Pressey
+
+!! Copyright (c)2003, 2007 Cat's Eye Technologies.  All rights reserved.
+!!
+!! Redistribution and use in source and binary forms, with or without
+!! modification, are permitted provided that the following conditions
+!! are met:
+!!
+!! 1. Redistributions of source code must retain the above copyright
+!!    notices, this list of conditions and the following disclaimer.
+!! 2. Redistributions in binary form must reproduce the above copyright
+!!    notices, this list of conditions, and the following disclaimer in
+!!    the documentation and/or other materials provided with the
+!!    distribution.
+!! 3. Neither the names of the copyright holders nor the names of their
+!!    contributors may be used to endorse or promote products derived
+!!    from this software without specific prior written permission. 
+!!
+!! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+!! ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES INCLUDING, BUT NOT
+!! LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+!! FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
+!! COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+!! INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+!! BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+!! LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+!! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+!! LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+!! ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+!! POSSIBILITY OF SUCH DAMAGE.
+
+!! ------------------- object system ---------------
+
+!! define objects as a Zz type.
+
+!! define the identity of an object.
+
+/ident -> "obj" object^o { /return o as ident }
+
+!! define equality on objects.
+
+/$cond -> object^a "=" "=" object^b {
+  /if obj a == obj b { /return 1 } else { /return 0 }
+}
+/$cond -> object^a "!" "=" object^b {
+  /if obj a == obj b { /return 0 } else { /return 1 }
+}
+
+!! ----------- object definition definition -----------
+
+/objects := {}                   !! list of all defined objects
+
+/stat -> "object" ident^o {      !! "forward" declaration
+  /object -> o { /return o }
+}
+
+                                 !! actual object declaration
+/stat -> "object" ident^o string_e^sdesc0 string_e^desc0 ...
+         object^n_exit0 object^s_exit0 object^e_exit0 object^w_exit0 ...
+         string_e^takeable0 object^loc0 {
+  /object   -> o              { /return o }
+  /string_t -> "b_sdesc"    o { /return sdesc0 }
+  /string_t -> "b_desc"     o { /return desc0 }
+  /object   -> "b_n_exit"   o { /return n_exit0 }
+  /object   -> "b_s_exit"   o { /return s_exit0 }
+  /object   -> "b_e_exit"   o { /return e_exit0 }
+  /object   -> "b_w_exit"   o { /return w_exit0 }
+  /string_t -> "b_takeable" o { /return takeable0 }
+  /object   -> "b_loc"      o { /return loc0 }
+  /noun     -> sdesc0         { /return o }
+  /objects  := objects &      { o }
+}
+
+/string_t -> "sdesc" object^o    { /return b_sdesc o }
+/string_t -> "desc" object^o     { /return b_desc o }
+/object   -> "n_exit" object^o   { /return obj b_n_exit o }
+/object   -> "s_exit" object^o   { /return obj b_s_exit o }
+/object   -> "e_exit" object^o   { /return obj b_e_exit o }
+/object   -> "w_exit" object^o   { /return obj b_w_exit o }
+/string_t -> "takeable" object^o { /return b_takeable o }
+/object   -> "loc" object^o      { /return obj b_loc o }
+
+!! ----------- object definitions proper -----------
+
+object nowhere
+
+object nowhere "nowhere" ...
+  "You can't see anything like that here." ...
+  nowhere nowhere nowhere nowhere "no" nowhere
+
+object wall "wall" ...
+  "You see nothing special." ...
+  nowhere nowhere nowhere nowhere "no" nowhere
+
+object square_room
+object low_tunnel
+object disused_armoury
+object junction
+object troll_room
+object library
+object treasure_room
+
+object door
+
+object player "yourself" ...
+  "As beautiful as ever." ...
+  nowhere nowhere nowhere nowhere "no" square_room
+
+object square_room "Square Room" ...
+  "You are in a square room.  A passage leads north; to the east is a door." ...
+  low_tunnel wall door wall "no" nowhere
+
+object door "door" ...
+  "A heavy iron door, rusting with age." ...
+  nowhere nowhere nowhere nowhere "no" square_room
+
+object low_tunnel "Low Tunnel" ...
+  "This is a low tunnel.  It heads north and south." ...
+  disused_armoury square_room wall wall "no" nowhere
+
+object key "key" ...
+  "A small, shiny key." ...
+  nowhere nowhere nowhere nowhere "yes" low_tunnel
+
+object disused_armoury "Disused Armoury" ...
+  "Dust covers eveything here.  A passage leads south." ...
+  wall low_tunnel wall wall "no" nowhere
+
+object coin "coin" ...
+  "A standard, but nonetheless valuable, gold coin." ...
+  nowhere nowhere nowhere nowhere "yes" low_tunnel
+
+object sword "sword" ...
+  "A finely-crafted implement of bloodletting." ...
+  nowhere nowhere nowhere nowhere "yes" disused_armoury
+
+object junction "Junction" ...
+  "Rough-hewn passages lead off in all directions." ...
+  troll_room treasure_room library square_room "no" nowhere
+
+object jewel "jewel" ...
+  "It is a dazzling blue gem, probably worth a pretty penny." ...
+  nowhere nowhere nowhere nowhere "yes" junction
+
+object troll_room "Troll Room" ...
+  "Bloodstains and axe-gouges grace the walls." ...
+  wall junction wall wall "no" nowhere
+
+object troll "troll" ...
+  "A nasty rubbery green sort with foul breath." ...
+  nowhere nowhere nowhere nowhere "no" troll_room
+
+object chest "chest" ...
+  "Large and ornately carved out of cedar." ...
+  nowhere nowhere nowhere nowhere "no" troll_room
+
+object crown "crown" ...
+  "A regal crown fashioned from gold, studded with topaz." ...
+  nowhere nowhere nowhere nowhere "yes" chest
+
+object sceptre "sceptre" ...
+  "A tapered length of hardwood studded with jewels and crystals." ...
+  nowhere nowhere nowhere nowhere "yes" treasure_room
+
+object library "Library" ...
+  "None of these books look like they've been disturbed for ages." ...
+  wall wall wall junction "no" nowhere
+
+object book "book" ...
+  "Its leather binding is very dusty." ...
+  nowhere nowhere nowhere nowhere "yes" library
+
+object treasure_room "Treasure Room" ...
+  "Unfortunely all that remains in most of the shelves are cobwebs." ...
+  junction wall wall wall "no" nowhere
+
+
+!! ----------------- object modifier utilities ------------
+
+/stat -> "move" object^o "to" object^loc {
+  /object -> "b_loc" o { /return loc }
+}
+
+!! ------------------- verbs ------------------
+
+
+!! general statement -> command bridge.
+
+/stat -> command^$
+
+!! travel
+
+/command -> go_verb^$ direction^d {
+  /if d == north { /newloc = obj n_exit loc player }
+  /if d == south { /newloc = obj s_exit loc player }
+  /if d == east  { /newloc = obj e_exit loc player }
+  /if d == west  { /newloc = obj w_exit loc player }
+  /if newloc == wall {
+    /print "There's a wall in the way."
+  } else {
+    /if newloc == door {
+      /print "The door is closed and locked."
+    } else {
+      /if newloc == nowhere {
+        /print "You can't go that way."
+      } else {
+        move player to newloc
+        look
+      }
+    }
+  }
+}
+
+/command -> direction^d { go d }
+
+/go_verb -> "move"    {}
+/go_verb -> "walk"    {}
+/go_verb -> "go"      {}
+/go_verb -> "travel"  {}
+
+/direction -> "north" { /return north }
+/direction -> "south" { /return south }
+/direction -> "east"  { /return east }
+/direction -> "west"  { /return west }
+/direction -> "n"     { /return north }
+/direction -> "s"     { /return south }
+/direction -> "e"     { /return east }
+/direction -> "w"     { /return west }
+
+!! pick up
+
+/command -> pickup_verb^$ visible_noun^n {
+  /if n == nowhere {
+    /print "You can't see any such thing."
+  } else {
+    /if n == sceptre {
+      /print "Almost as if it were alive, it evades your grasp."
+    } else {
+      /if takeable n == "yes" {
+        move n to player
+        /print "Taken."
+      } else {
+        /print "You can't carry that!"
+      }
+    }
+  }
+}
+
+/pickup_verb -> "get"        {}
+/pickup_verb -> "grab"       {}
+/pickup_verb -> "take"       {}
+/pickup_verb -> "pick" "up"  {}
+
+!! put down
+
+/command -> putdown_verb^$ held_noun^n {
+  /if n == nowhere {
+    /print "You aren't carrying any such thing."
+  } else {
+    move n to loc player
+    /print "Dropped." 
+  }
+}
+
+/putdown_verb -> "drop"       {}
+/putdown_verb -> "put" "down" {}
+
+!! examine
+
+/command -> examine_verb^v nearby_noun^n {
+  /print desc n
+}
+
+/examine_verb -> "examine"    {}
+/examine_verb -> "inspect"    {}
+/examine_verb -> "look" "at"  {}
+
+!! look
+
+/command -> look_verb^$ {
+  /print sdesc loc player
+  /print desc loc player
+  /foreach o in objects {
+    /if o != player {
+      /if loc o == loc player {
+        /print "You can see a", sdesc o, "here."
+      }
+    }
+  }
+}
+
+/look_verb -> "look" {}
+/look_verb -> "l"    {}
+
+!! inventory
+
+/command -> inv_verb^$ {
+  /inv_list := {}
+  /foreach o in objects {
+    /if loc o == player {
+      /inv_list := inv_list & { o }
+    }
+  }
+  /inv_length := inv_list.length
+  /if inv_length == 0 {
+    /print "You are empty-handed."
+  } else {
+    /print "You are carrying:"
+    /foreach o in inv_list {
+      /print "  a", sdesc o
+    }
+  }
+}
+
+/inv_verb -> "inventory"       {}
+/inv_verb -> "inv"             {}
+/inv_verb -> "i"               {}
+/inv_verb -> "take" inv_verb^$ {}
+
+!! score
+
+/command -> "score" {
+  /score_v := 0
+  /foreach o in objects {
+    /if loc o == player {
+      /score_v := score_v + (score_of o)
+    }
+  }
+  /print "Your score is",score_v,"points out of a possible 50."
+  /if score_v == 50 {
+    /print "Congratulations!  You won the adventure!"
+  }
+}
+
+/$num_t -> "score_of" object^o {
+  /sc := 0
+  /if o == coin    { /sc :=  5 }
+  /if o == jewel   { /sc := 10 }
+  /if o == sceptre { /sc := 15 }
+  /if o == crown   { /sc := 20 }
+  /return sc
+}
+
+!! open
+
+/command -> open_verb^$ nearby_noun^n {
+  /if n == door {
+    /if e_exit square_room != door {
+      /print "It's already open."
+    } else {
+      /if loc key != player {
+        /print "It's locked."
+      } else {
+        /object -> "b_e_exit" square_room { /return junction }
+        /print "The door creaks open!"
+      }
+    }
+  } else {
+    /if n == chest {
+      /if loc troll == loc player {
+        /print "The troll guards it jealously."
+      } else {
+        /if loc crown != chest {
+	  /print "It's already open."
+	} else {
+	  move crown to loc player
+	  /print "You open the chest, revealing a beautiful crown."
+	}
+      }
+    } else {
+      /print "You can't open that!"
+    }
+  }
+}
+
+/open_verb -> "open"           {}
+/open_verb -> "unlock"         {}
+
+!! fight
+
+/command -> fight_verb^$ visible_noun^n {
+  /if n != troll {
+    /print "Violence isn't the answer to this one."
+  } else {
+    /if loc sword != player {
+      /print "You don't stand a chance bare-handed."
+    } else {
+      move troll to low_tunnel
+      /print "You dodge and weave and valiantly deliver a stunning blow!"
+      /print "The troll flees!"
+    }
+  }
+}
+
+/fight_verb -> "fight"          {}
+/fight_verb -> "attack"         {}
+/fight_verb -> "kill"           {}
+
+!! read
+
+/command -> read_verb^$ nearby_noun^n {
+  /if n != book {
+    /print "There's nothing written on it."
+  } else {
+    /print "Matters arcane and esoteric fill this volume."
+    /print "You notice one word of magical essence in particular: YKZMNIFN"
+    /command -> "ykzmnifn" {
+      /if loc player == loc sceptre {
+	move sceptre to player
+        /print "The sceptre floats right into your hand!"
+      } else {
+        /print "Nothing happens here."
+      }
+    }
+  }
+}
+
+/read_verb -> "read"       {}
+
+!! ---------------------------- parse errors
+
+/command -> noun^n {
+  /print "But what do you want to do with the",n,"?"
+}
+
+!! It would be great if we could do this, but we can't.
+!!
+!! /command -> any^$ noun^$ {
+!!  /print "I don't understand what you mean."
+!! }
+
+!! ---------------------------- nouns
+
+/noun -> "the" noun^n { /return n }
+/noun -> "a" noun^n   { /return n }
+/noun -> "an" noun^n  { /return n }
+
+/visible_noun -> noun^n {
+  /if loc n == loc player {
+    /return n
+  }
+  /if loc n != loc player {
+    /return nowhere
+  }
+}
+
+/held_noun -> noun^n {
+  /if loc n == player {
+    /return n
+  }
+  /if loc n != player {
+    /return nowhere
+  }
+}
+
+/nearby_noun -> noun^n {
+  /if loc n == player || loc n == loc player {
+    /return n
+  }
+  /if loc n != player && loc n != loc player {
+    /return nowhere
+  }
+}
+
+!! --------------------------- start
+
+look
