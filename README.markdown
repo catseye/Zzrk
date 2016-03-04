@@ -5,7 +5,7 @@ What is it?
 -----------
 
 Zzrk is a toy text adventure (or, if you prefer, a toy work of interactive
-fiction) written in "pure" Zz -- assuming such a concept makes any sense.
+fiction) written in "pure" Zz — assuming such a concept makes any sense.
 Zz is a dynamic meta-language designed for the APE parallel computing
 project to enable variants on languages such as FORTRAN to be quickly
 developed.  As such, Zz maintains very little distinction between the
